@@ -85,6 +85,7 @@ namespace Fluffy
             if (this.showResearchedProjects == showResearch.All)
             {
                 source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
+                         where !proj.prerequisites.Contains(proj)
                          select proj;
             }
             else if (this.showResearchedProjects == showResearch.Completed)
@@ -114,6 +115,7 @@ namespace Fluffy
                 {
                     GUI.DrawTexture(rect4, TexUI.HighlightTex);
                 }
+
                 string text = current.LabelCap + " (" + current.totalCost.ToString("F0") + ")";
                 Rect rect5 = new Rect(rect4);
                 rect5.x += 6f;
@@ -123,7 +125,28 @@ namespace Fluffy
                 {
                     rect5.height = num2 + 3f;
                 }
-                if (Widgets.TextButton(rect5, text, false, true))
+                // give the label a colour if we're in the all tab.
+                Color textColor;
+                if (this.showResearchedProjects == showResearch.All)
+                {
+                    if (current.IsFinished)
+                    {
+                        textColor = new Color(1f, 1f, 1f);
+                    }
+                    else if (!current.PrereqsFulfilled)
+                    {
+                        textColor = new Color(.6f, .6f, .6f);
+                    }
+                    else
+                    {
+                        textColor = new Color(.8f, .85f, 1f);
+                    }
+                } 
+                else
+                {
+                    textColor = new Color(.8f, .85f, 1f);
+                }
+                if (Widgets.TextButton(rect5, text, false, true, textColor))
                 {
                     SoundDefOf.Click.PlayOneShotOnCamera();
                     this.selectedProject = current;
