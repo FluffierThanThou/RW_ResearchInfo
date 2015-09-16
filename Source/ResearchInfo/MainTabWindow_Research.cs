@@ -210,7 +210,20 @@ namespace Fluffy
                 {
                     desc += String.Join(", ", follow);
                 }
-                desc += ".";
+                desc += ".\n\n";
+
+                //// find all unlocks
+                //desc += "Unlocks: ";
+                //string[] unlocks = getUnlocks(selectedProject);
+                //if (unlocks == null || unlocks.Count() == 0)
+                //{
+                //    desc += "none";
+                //}
+                //else
+                //{
+                //    desc += String.Join(", ", unlocks);
+                //}
+                //desc += ".\n\n";
 
 
                 Widgets.Label(rect7, desc);
@@ -255,5 +268,12 @@ namespace Fluffy
             }
             GUI.EndGroup();
         }
+
+
+        //// too many options, different ways, dll unlocking. This won't work.
+        //public string[] getUnlocks(ResearchProjectDef def)
+        //{
+        //    string[] recipes = DefDatabase<RecipeDef>.AllDefsListForReading.Where(rd => re)
+        //}
     }
 }
