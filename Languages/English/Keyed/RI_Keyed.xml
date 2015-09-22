@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LanguageData>
+
+	<RI.none>none</RI.none>
+	<RI.All>All</RI.All>
+	<RI.Available>Available</RI.Available>
+	<RI.Prerequisites>Prerequisites</RI.Prerequisites>
+	<RI.LeadsTo>Leads to</RI.LeadsTo>
+	<RI.PreReqLocked>Locked</RI.PreReqLocked>
+
+
+</LanguageData>

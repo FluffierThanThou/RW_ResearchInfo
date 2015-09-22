@@ -156,7 +156,7 @@ namespace Fluffy
             GUI.EndGroup();
             Widgets.EndScrollView();
             List<TabRecord> list = new List<TabRecord>();
-            TabRecord item = new TabRecord("All", delegate
+            TabRecord item = new TabRecord("RI.All".Translate(), delegate
             {
                 this.showResearchedProjects = showResearch.All;
             }, this.showResearchedProjects == showResearch.All);
@@ -166,7 +166,7 @@ namespace Fluffy
                 this.showResearchedProjects = showResearch.Completed;
             }, this.showResearchedProjects == showResearch.Completed);
             list.Add(item2);
-            TabRecord item3 = new TabRecord("Available", delegate
+            TabRecord item3 = new TabRecord("RI.Available".Translate(), delegate
             {
                 this.showResearchedProjects = showResearch.Available;
             }, this.showResearchedProjects == showResearch.Available);
@@ -188,10 +188,10 @@ namespace Fluffy
                 // select prerequisites
                 desc += ".\n\n";
                 string[] prereqs = selectedProject.prerequisites.Select(def => def.LabelCap).ToArray();
-                desc += "Prerequisites: ";
+                desc += "RI.Prerequisites".Translate() + ": ";
                 if (prereqs == null || prereqs.Count() == 0)
                 {
-                    desc += "none";
+                    desc += "RI.none".Translate();
                 }
                 else
                 {
@@ -201,10 +201,10 @@ namespace Fluffy
 
                 // select follow-ups
                 string[] follow = DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(def => def.prerequisites.Contains(selectedProject)).Select(def => def.LabelCap).ToArray();
-                desc += "Leads to: ";
+                desc += "RI.LeadsTo".Translate() + ": ";
                 if (follow == null || follow.Count() == 0)
                 {
-                    desc += "none";
+                    desc += "RI.none".Translate();
                 }
                 else
                 {
@@ -240,6 +240,13 @@ namespace Fluffy
                     Widgets.DrawMenuSection(rect8, true);
                     Text.Anchor = TextAnchor.MiddleCenter;
                     Widgets.Label(rect8, "InProgress".Translate());
+                    Text.Anchor = TextAnchor.UpperLeft;
+                }
+                else if (!this.selectedProject.PrereqsFulfilled)
+                {
+                    Widgets.DrawMenuSection(rect8);
+                    Text.Anchor = TextAnchor.MiddleCenter;
+                    Widgets.Label(rect8, "RI.PreReqLocked".Translate());
                     Text.Anchor = TextAnchor.UpperLeft;
                 }
                 else
