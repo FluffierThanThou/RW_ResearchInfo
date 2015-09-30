@@ -20,24 +20,24 @@ namespace Fluffy
 
         private const int ProjectIntervalY = 25;
 
-        protected ResearchProjectDef selectedProject;
+        protected ResearchProjectDef SelectedProject;
 
-        private enum showResearch
+        private enum ShowResearch
         {
             All,
             Completed,
             Available
         }
 
-        private showResearch showResearchedProjects = showResearch.Available;
+        private ShowResearch _showResearchedProjects = ShowResearch.Available;
 
-        private Vector2 projectListScrollPosition = default(Vector2);
+        private Vector2 _projectListScrollPosition = default(Vector2);
 
-        private bool noBenchWarned;
+        private bool _noBenchWarned;
 
         private static readonly Texture2D BarFillTex = SolidColorMaterials.NewSolidColorTexture(new Color(0.2f, 0.8f, 0.85f));
 
-        private static readonly Texture2D BarBGTex = SolidColorMaterials.NewSolidColorTexture(new Color(0.1f, 0.1f, 0.1f));
+        private static readonly Texture2D BarBgTex = SolidColorMaterials.NewSolidColorTexture(new Color(0.1f, 0.1f, 0.1f));
 
         public override float TabButtonBarPercent
         {
@@ -55,19 +55,19 @@ namespace Fluffy
         public override void PreOpen()
         {
             base.PreOpen();
-            this.selectedProject = Find.ResearchManager.currentProj;
+            SelectedProject = Find.ResearchManager.currentProj;
         }
 
         public override void DoWindowContents(Rect inRect)
         {
             base.DoWindowContents(inRect);
-            if (!this.noBenchWarned)
+            if (!_noBenchWarned)
             {
                 if (!Find.ListerBuildings.ColonistsHaveBuilding(ThingDefOf.ResearchBench))
                 {
-                    Find.WindowStack.Add(new Dialog_Message("ResearchMenuWithoutBench".Translate(), null));
+                    Find.WindowStack.Add(new Dialog_Message("ResearchMenuWithoutBench".Translate()));
                 }
-                this.noBenchWarned = true;
+                _noBenchWarned = true;
             }
             Text.Font = GameFont.Medium;
             Text.Anchor = TextAnchor.UpperCenter;
@@ -77,18 +77,18 @@ namespace Fluffy
             Rect rect = new Rect(0f, 75f, 330f, inRect.height - 75f);
             Rect rect2 = new Rect(rect.xMax + 10f, 45f, inRect.width - rect.width - 10f, inRect.height - 45f);
             Widgets.DrawMenuSection(rect, false);
-            Widgets.DrawMenuSection(rect2, true);
+            Widgets.DrawMenuSection(rect2);
             Rect outRect = rect.ContractedBy(10f);
             IEnumerable<ResearchProjectDef> source;
 
             // Add an "all" tab, if you don't like it, chuck it out.
-            if (this.showResearchedProjects == showResearch.All)
+            if (_showResearchedProjects == ShowResearch.All)
             {
                 source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
                          where !proj.prerequisites.Contains(proj)
                          select proj;
             }
-            else if (this.showResearchedProjects == showResearch.Completed)
+            else if (_showResearchedProjects == ShowResearch.Completed)
             {
                 source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
                          where proj.IsFinished && proj.PrereqsFulfilled
@@ -100,9 +100,9 @@ namespace Fluffy
                          where !proj.IsFinished && proj.PrereqsFulfilled
                          select proj;
             }
-            float height = (float)(25 * source.Count<ResearchProjectDef>() + 100);
+            float height = 25 * source.Count() + 100;
             Rect rect3 = new Rect(0f, 0f, outRect.width - 16f, height);
-            Widgets.BeginScrollView(outRect, ref this.projectListScrollPosition, rect3);
+            Widgets.BeginScrollView(outRect, ref _projectListScrollPosition, rect3);
             Rect position = rect3.ContractedBy(10f);
             GUI.BeginGroup(position);
             int num = 0;
@@ -110,8 +110,8 @@ namespace Fluffy
                                                    orderby rp.totalCost
                                                    select rp)
             {
-                Rect rect4 = new Rect(0f, (float)num, position.width, 25f);
-                if (this.selectedProject == current)
+                Rect rect4 = new Rect(0f, num, position.width, 25f);
+                if (SelectedProject == current)
                 {
                     GUI.DrawTexture(rect4, TexUI.HighlightTex);
                 }
@@ -127,7 +127,7 @@ namespace Fluffy
                 }
                 // give the label a colour if we're in the all tab.
                 Color textColor;
-                if (this.showResearchedProjects == showResearch.All)
+                if (_showResearchedProjects == ShowResearch.All)
                 {
                     if (current.IsFinished)
                     {
@@ -149,7 +149,7 @@ namespace Fluffy
                 if (Widgets.TextButton(rect5, text, false, true, textColor))
                 {
                     SoundDefOf.Click.PlayOneShotOnCamera();
-                    this.selectedProject = current;
+                    SelectedProject = current;
                 }
                 num += 25;
             }
@@ -158,38 +158,38 @@ namespace Fluffy
             List<TabRecord> list = new List<TabRecord>();
             TabRecord item = new TabRecord("RI.All".Translate(), delegate
             {
-                this.showResearchedProjects = showResearch.All;
-            }, this.showResearchedProjects == showResearch.All);
+                this._showResearchedProjects = ShowResearch.All;
+            }, _showResearchedProjects == ShowResearch.All);
             list.Add(item);
             TabRecord item2 = new TabRecord("Researched".Translate(), delegate
             {
-                this.showResearchedProjects = showResearch.Completed;
-            }, this.showResearchedProjects == showResearch.Completed);
+                this._showResearchedProjects = ShowResearch.Completed;
+            }, _showResearchedProjects == ShowResearch.Completed);
             list.Add(item2);
             TabRecord item3 = new TabRecord("RI.Available".Translate(), delegate
             {
-                this.showResearchedProjects = showResearch.Available;
-            }, this.showResearchedProjects == showResearch.Available);
+                this._showResearchedProjects = ShowResearch.Available;
+            }, _showResearchedProjects == ShowResearch.Available);
             list.Add(item3);
             TabDrawer.DrawTabs(rect, list);
             Rect position2 = rect2.ContractedBy(20f);
             GUI.BeginGroup(position2);
-            if (this.selectedProject != null)
+            if (SelectedProject != null)
             {
                 Text.Font = GameFont.Medium;
                 GenUI.SetLabelAlign(TextAnchor.MiddleLeft);
                 Rect rect6 = new Rect(20f, 0f, position2.width - 20f, 50f);
-                Widgets.Label(rect6, this.selectedProject.LabelCap);
+                Widgets.Label(rect6, SelectedProject.LabelCap);
                 GenUI.ResetLabelAlign();
                 Text.Font = GameFont.Small;
                 Rect rect7 = new Rect(0f, 50f, position2.width, position2.height - 50f);
-                string desc = this.selectedProject.description;
+                string desc = SelectedProject.description;
 
                 // select prerequisites
                 desc += ".\n\n";
-                string[] prereqs = selectedProject.prerequisites.Select(def => def.LabelCap).ToArray();
+                string[] prereqs = SelectedProject.prerequisites.Select(def => def.LabelCap).ToArray();
                 desc += "RI.Prerequisites".Translate() + ": ";
-                if (prereqs == null || prereqs.Count() == 0)
+                if (prereqs.Length == 0)
                 {
                     desc += "RI.none".Translate();
                 }
@@ -200,9 +200,9 @@ namespace Fluffy
                 desc += ".\n\n";
 
                 // select follow-ups
-                string[] follow = DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(def => def.prerequisites.Contains(selectedProject)).Select(def => def.LabelCap).ToArray();
+                string[] follow = DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(rpd => rpd.prerequisites.Contains(SelectedProject)).Select(rpd => rpd.LabelCap).ToArray();
                 desc += "RI.LeadsTo".Translate() + ": ";
-                if (follow == null || follow.Count() == 0)
+                if (!follow.Any())
                 {
                     desc += "RI.none".Translate();
                 }
@@ -228,21 +228,21 @@ namespace Fluffy
 
                 Widgets.Label(rect7, desc);
                 Rect rect8 = new Rect(position2.width / 2f - 50f, 300f, 100f, 50f);
-                if (this.selectedProject.IsFinished)
+                if (SelectedProject.IsFinished)
                 {
-                    Widgets.DrawMenuSection(rect8, true);
+                    Widgets.DrawMenuSection(rect8);
                     Text.Anchor = TextAnchor.MiddleCenter;
                     Widgets.Label(rect8, "Finished".Translate());
                     Text.Anchor = TextAnchor.UpperLeft;
                 }
-                else if (this.selectedProject == Find.ResearchManager.currentProj)
+                else if (SelectedProject == Find.ResearchManager.currentProj)
                 {
-                    Widgets.DrawMenuSection(rect8, true);
+                    Widgets.DrawMenuSection(rect8);
                     Text.Anchor = TextAnchor.MiddleCenter;
                     Widgets.Label(rect8, "InProgress".Translate());
                     Text.Anchor = TextAnchor.UpperLeft;
                 }
-                else if (!this.selectedProject.PrereqsFulfilled)
+                else if (!SelectedProject.PrereqsFulfilled)
                 {
                     Widgets.DrawMenuSection(rect8);
                     Text.Anchor = TextAnchor.MiddleCenter;
@@ -251,26 +251,26 @@ namespace Fluffy
                 }
                 else
                 {
-                    if (Widgets.TextButton(rect8, "Research".Translate(), true, false))
+                    if (Widgets.TextButton(rect8, "Research".Translate()))
                     {
                         SoundDef.Named("ResearchStart").PlayOneShotOnCamera();
-                        Find.ResearchManager.currentProj = this.selectedProject;
+                        Find.ResearchManager.currentProj = SelectedProject;
                     }
                     if (Prefs.DevMode)
                     {
                         Rect rect9 = rect8;
                         rect9.x += rect9.width + 4f;
-                        if (Widgets.TextButton(rect9, "Debug Insta-finish", true, false))
+                        if (Widgets.TextButton(rect9, "Debug Insta-finish"))
                         {
-                            Find.ResearchManager.currentProj = this.selectedProject;
-                            Find.ResearchManager.InstantFinish(this.selectedProject);
+                            Find.ResearchManager.currentProj = SelectedProject;
+                            Find.ResearchManager.InstantFinish(SelectedProject);
                         }
                     }
                 }
                 Rect rect10 = new Rect(15f, 450f, position2.width - 30f, 35f);
-                Widgets.FillableBar(rect10, this.selectedProject.PercentComplete, MainTabWindow_Research.BarFillTex, MainTabWindow_Research.BarBGTex, true);
+                Widgets.FillableBar(rect10, SelectedProject.PercentComplete, BarFillTex, BarBgTex, true);
                 Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(rect10, this.selectedProject.ProgressNumbersString);
+                Widgets.Label(rect10, SelectedProject.ProgressNumbersString);
                 Text.Anchor = TextAnchor.UpperLeft;
             }
             GUI.EndGroup();
