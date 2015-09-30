@@ -10,6 +10,10 @@ namespace Fluffy
 {
     public class MainTabWindow_Research : MainTabWindow
     {
+        private Texture2D _sortByNameTex = ContentFinder<Texture2D>.Get("UI/Buttons/A");
+
+        private Texture2D _sortByCostTex = ContentFinder<Texture2D>.Get("UI/Buttons/Research");
+
         private const float LeftAreaWidth = 330f;
 
         private const int ModeSelectButHeight = 40;
@@ -39,6 +43,22 @@ namespace Fluffy
 
         private static readonly Texture2D BarBgTex = SolidColorMaterials.NewSolidColorTexture(new Color(0.1f, 0.1f, 0.1f));
 
+        private IEnumerable<ResearchProjectDef> _source;
+
+        public enum SortOptions
+        {
+            Name,
+            Cost
+        }
+
+        private SortOptions _sortBy = SortOptions.Cost;
+
+        private bool _asc = true;
+
+        private string _filter = "";
+
+        private string _oldFilter;
+
         public override float TabButtonBarPercent
         {
             get
@@ -56,6 +76,9 @@ namespace Fluffy
         {
             base.PreOpen();
             SelectedProject = Find.ResearchManager.currentProj;
+            _filter = "";
+            _oldFilter = "";
+            RefreshSource();
         }
 
         public override void DoWindowContents(Rect inRect)
@@ -74,56 +97,100 @@ namespace Fluffy
             Widgets.Label(new Rect(0f, 0f, inRect.width, 300f), "Research".Translate());
             Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
-            Rect rect = new Rect(0f, 75f, 330f, inRect.height - 75f);
-            Rect rect2 = new Rect(rect.xMax + 10f, 45f, inRect.width - rect.width - 10f, inRect.height - 45f);
-            Widgets.DrawMenuSection(rect, false);
-            Widgets.DrawMenuSection(rect2);
-            Rect outRect = rect.ContractedBy(10f);
-            IEnumerable<ResearchProjectDef> source;
+            Rect sidebar = new Rect(0f, 75f, 330f, inRect.height - 75f);
+            Rect content = new Rect(sidebar.xMax + 10f, 45f, inRect.width - sidebar.width - 10f, inRect.height - 45f);
+            Widgets.DrawMenuSection(sidebar, false);
+            Widgets.DrawMenuSection(content);
 
-            // Add an "all" tab, if you don't like it, chuck it out.
-            if (_showResearchedProjects == ShowResearch.All)
+            // plop in extra row for input + sort buttons
+            Rect sortFilterRow = sidebar.ContractedBy(10f);
+            sortFilterRow.height = 30f;
+
+            Rect filterRect = new Rect(sortFilterRow);
+            filterRect.width = sortFilterRow.width - 110f;
+            Rect deleteFilter = new Rect(filterRect.xMax + 6f, filterRect.yMin + 3f, 24f, 24f);
+            Rect sortByName = new Rect(deleteFilter.xMax + 6f, filterRect.yMin + 3f, 24f, 24f);
+            Rect sortByCost = new Rect(sortByName.xMax + 6f, filterRect.yMin + 3f, 24f, 24f);
+            TooltipHandler.TipRegion(filterRect, "RI.filterTooltip".Translate());
+            if (_filter != "") TooltipHandler.TipRegion(deleteFilter, "RI.deleteFilterTooltip".Translate());
+            TooltipHandler.TipRegion(sortByName, "RI.sortByNameTooltip".Translate());
+            TooltipHandler.TipRegion(sortByCost, "RI.sortByCostTooltip".Translate());
+
+
+            // filter options
+            _filter = Widgets.TextField(filterRect, _filter);
+            if (_oldFilter != _filter)
             {
-                source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
-                         where !proj.prerequisites.Contains(proj)
-                         select proj;
+                _oldFilter = _filter;
+                RefreshSource();
             }
-            else if (_showResearchedProjects == ShowResearch.Completed)
+            if (_filter != "")
             {
-                source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
-                         where proj.IsFinished && proj.PrereqsFulfilled
-                         select proj;
+                if (Widgets.ImageButton(deleteFilter, Widgets.CheckboxOffTex))
+                {
+                    _filter = "";
+                    RefreshSource();
+                }
             }
-            else
+
+            // sort options
+            if (Widgets.ImageButton(sortByName, _sortByNameTex))
             {
-                source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
-                         where !proj.IsFinished && proj.PrereqsFulfilled
-                         select proj;
+                if (_sortBy != SortOptions.Name)
+                {
+                    _sortBy = SortOptions.Name;
+                    _asc = false;
+                    RefreshSource();
+                }
+                else
+                {
+                    _asc = !_asc;
+                    RefreshSource();
+                }
             }
-            float height = 25 * source.Count() + 100;
-            Rect rect3 = new Rect(0f, 0f, outRect.width - 16f, height);
-            Widgets.BeginScrollView(outRect, ref _projectListScrollPosition, rect3);
-            Rect position = rect3.ContractedBy(10f);
+            if (Widgets.ImageButton(sortByCost, _sortByCostTex))
+            {
+                if (_sortBy != SortOptions.Cost)
+                {
+                    _sortBy = SortOptions.Cost;
+                    _asc = true;
+                    RefreshSource();
+                }
+                else
+                {
+                    _asc = !_asc;
+                    RefreshSource();
+                }
+            }
+
+            // contract sidebar area
+            Rect sidebarInner = sidebar.ContractedBy(10f);
+            sidebarInner.yMin += 30f;
+            sidebarInner.height -= 30f;
+            float height = 25 * _source.Count() + 100;
+            Rect sidebarContent = new Rect(0f, 0f, sidebarInner.width - 16f, height);
+            Widgets.BeginScrollView(sidebarInner, ref _projectListScrollPosition, sidebarContent);
+            Rect position = sidebarContent.ContractedBy(10f);
             GUI.BeginGroup(position);
             int num = 0;
-            foreach (ResearchProjectDef current in from rp in source
-                                                   orderby rp.totalCost
+
+            foreach (ResearchProjectDef current in from rp in _source
                                                    select rp)
             {
-                Rect rect4 = new Rect(0f, num, position.width, 25f);
+                Rect sidebarRow = new Rect(0f, num, position.width, 25f);
                 if (SelectedProject == current)
                 {
-                    GUI.DrawTexture(rect4, TexUI.HighlightTex);
+                    GUI.DrawTexture(sidebarRow, TexUI.HighlightTex);
                 }
 
                 string text = current.LabelCap + " (" + current.totalCost.ToString("F0") + ")";
-                Rect rect5 = new Rect(rect4);
-                rect5.x += 6f;
-                rect5.width -= 6f;
-                float num2 = Text.CalcHeight(text, rect5.width);
-                if (rect5.height < num2)
+                Rect sidebarRowInner = new Rect(sidebarRow);
+                sidebarRowInner.x += 6f;
+                sidebarRowInner.width -= 6f;
+                float num2 = Text.CalcHeight(text, sidebarRowInner.width);
+                if (sidebarRowInner.height < num2)
                 {
-                    rect5.height = num2 + 3f;
+                    sidebarRowInner.height = num2 + 3f;
                 }
                 // give the label a colour if we're in the all tab.
                 Color textColor;
@@ -141,12 +208,12 @@ namespace Fluffy
                     {
                         textColor = new Color(.8f, .85f, 1f);
                     }
-                } 
+                }
                 else
                 {
                     textColor = new Color(.8f, .85f, 1f);
                 }
-                if (Widgets.TextButton(rect5, text, false, true, textColor))
+                if (Widgets.TextButton(sidebarRowInner, text, false, true, textColor))
                 {
                     SoundDefOf.Click.PlayOneShotOnCamera();
                     SelectedProject = current;
@@ -159,20 +226,23 @@ namespace Fluffy
             TabRecord item = new TabRecord("RI.All".Translate(), delegate
             {
                 this._showResearchedProjects = ShowResearch.All;
+                RefreshSource();
             }, _showResearchedProjects == ShowResearch.All);
             list.Add(item);
             TabRecord item2 = new TabRecord("Researched".Translate(), delegate
             {
                 this._showResearchedProjects = ShowResearch.Completed;
+                RefreshSource();
             }, _showResearchedProjects == ShowResearch.Completed);
             list.Add(item2);
             TabRecord item3 = new TabRecord("RI.Available".Translate(), delegate
             {
                 this._showResearchedProjects = ShowResearch.Available;
+                RefreshSource();
             }, _showResearchedProjects == ShowResearch.Available);
             list.Add(item3);
-            TabDrawer.DrawTabs(rect, list);
-            Rect position2 = rect2.ContractedBy(20f);
+            TabDrawer.DrawTabs(sidebar, list);
+            Rect position2 = content.ContractedBy(20f);
             GUI.BeginGroup(position2);
             if (SelectedProject != null)
             {
@@ -274,6 +344,47 @@ namespace Fluffy
                 Text.Anchor = TextAnchor.UpperLeft;
             }
             GUI.EndGroup();
+        }
+
+        private void RefreshSource()
+        {
+            if (_showResearchedProjects == ShowResearch.All)
+            {
+                _source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
+                          where !proj.prerequisites.Contains(proj)
+                          select proj;
+            }
+            else if (_showResearchedProjects == ShowResearch.Completed)
+            {
+                _source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
+                          where proj.IsFinished && proj.PrereqsFulfilled
+                          select proj;
+            }
+            else
+            {
+                _source = from proj in DefDatabase<ResearchProjectDef>.AllDefs
+                          where !proj.IsFinished && proj.PrereqsFulfilled
+                          select proj;
+            }
+
+            if (_filter != "")
+            {
+                _source = _source.Where(rpd => rpd.label.ToUpper().Contains(_filter.ToUpper()));
+            }
+
+            switch (_sortBy)
+            {
+                case SortOptions.Cost:
+                    _source = _source.OrderBy(rpd => rpd.totalCost);
+                    break;
+                case SortOptions.Name:
+                    _source = _source.OrderBy(rpd => rpd.LabelCap);
+                    break;
+                default:
+                    break;
+            }
+
+            if (_asc) _source = _source.Reverse();
         }
 
 
